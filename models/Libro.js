@@ -16,7 +16,19 @@ export const Libro=sequelize.define("Libro",{
     editor:{
         type:DataTypes.STRING
     },
-    empresanombre:{
+    titulo:{
         type:DataTypes.STRING
+    },
+    foto:{
+        type:DataTypes.STRING
+    },
+    foto2:{
+        type:DataTypes.STRING
+    },
+    stock:{
+        type:DataTypes.INTEGER
+    },
+    des:{
+        type:DataTypes.TEXT
     }
 })
