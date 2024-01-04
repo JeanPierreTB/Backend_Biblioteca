@@ -6,7 +6,7 @@ import cors from "cors";
 import { Libro } from "./models/Libro.js";
 import { Usuario } from "./models/Usuario.js";
 import { Libro_Usuario } from "./models/Libro_Usuario.js";
-import { where } from "sequelize";
+import { Op } from "sequelize";
 
 
 
@@ -216,6 +216,153 @@ app.post("/resevar-libro",async(req,res)=>{
         res.status(500).json({success:false,message:"Error interno del servidor"})
     }
 })
+
+
+/*app.post('/obtener-reserva',async(req,res)=>{
+    try{
+        const user=await Usuario.findOne({
+            where:{
+                correo:req.body.correo,
+                contra:req.body.contra
+            }
+        })
+
+        if(!user)
+            return res.status(404).send({success:false,message:"Usuario no encontrado"})
+
+        
+        const libro_usuario=await Libro_Usuario.findAll({
+            where:{
+                UsuarioId:user.id
+            }
+        })
+
+
+        if(!libro_usuario)
+            return res.status(404).send({success:false,message:"No hay libros reservados"})
+
+        const libroid=libro_usuario.map(libro=>libro.LibroId)
+
+        //console.log(libroid);
+
+        const libro=await Libro.findAll({
+            where:{
+                id:libroid
+            }
+        })
+
+        console.log(libro)
+    
+        return res.status(200).json({success:true,message:"Libros encontrados",libros_usuario:libro_usuario,libro:libro})
+    }catch(e){
+        res.status(500).json({success:false,message:"Error interno del servidor"})
+    }
+})*/
+
+app.post('/obtener-reserva', async (req, res) => {
+    try {
+        const { correo, contra } = req.body;
+
+        const user = await Usuario.findOne({
+            where: { correo, contra },
+            include: Libro  // Sequelize reconocerá automáticamente la relación a través de Libro_Usuario
+        });
+
+        console.log(user);
+
+        if (!user) {
+            return res.status(404).send({ success: false, message: "Usuario no encontrado" });
+        }
+
+        const librosUsuario = user.Libros;  // Accede a los libros directamente a través de la relación
+
+        if (!librosUsuario.length) {
+            return res.status(404).send({ success: false, message: "No hay libros reservados" });
+        }
+
+        console.log(librosUsuario);
+
+        return res.status(200).json({ success: true, message: "Libros encontrados", librosUsuario });
+    } catch (e) {
+        console.error(e);  // Imprime el error en la consola
+        res.status(500).json({ success: false, message: "Error interno del servidor" });
+    }
+});
+
+
+app.post('/vence-pronto', async (req, res) => {
+    try {
+        const { correo, contra } = req.body;
+
+        const user = await Usuario.findOne({
+            where: { correo, contra },
+            include: Libro
+        });
+
+        if (!user) {
+            return res.status(404).send({ success: false, message: "Usuario no encontrado" });
+        }
+
+        const currentDate = new Date();
+        const nextWeek = new Date(currentDate);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+
+        const librosVencenPronto = user.Libros.filter(libro => {
+            return libro.Libro_Usuario.fecha >= currentDate && libro.Libro_Usuario.fecha <= nextWeek;
+        });
+
+        console.log(librosVencenPronto);
+
+        return res.status(200).json({ success: true, message: "Libros que vencen pronto", librosVencenPronto });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ success: false, message: "Error interno del servidor" });
+    }
+});
+
+app.post('/entregar-producto',async(req,res)=>{
+    try{
+        const usuario=await Usuario.findOne({
+            where:{
+                correo:req.body.correo,
+                contra:req.body.contra
+            }
+        })
+
+        if(!usuario)
+            return res.status(404).send({success:false,message:"Usuario no encontrado"})
+
+        const libro=await Libro.findOne({
+            where:{
+                titulo:req.body.titulo
+            }
+        })
+        if(!libro)
+            return res.status(404).send({success:false,message:"Libro no encontrado"})
+
+        const libro_usuario=await Libro_Usuario.destroy({
+            where:{
+                LibroId:libro.id
+            }
+        })
+
+        const libro2=await Libro.update({
+            stock:libro.stock+1
+        },{
+            where:{
+                titulo:libro.titulo
+            }
+        })
+
+        return res.status(200).send({success:true,message:"Libro devuelto",libro:libro_usuario})
+
+
+    }catch(e){
+        res.status(500).json({ success: false, message: "Error interno del servidor" });
+    }
+})
+
+
 
 
 const verificarconexion= async ()=>{
