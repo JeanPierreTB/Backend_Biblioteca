@@ -166,6 +166,21 @@ app.post("/buscar-libro",async(req,res)=>{
     }
 })
 
+app.delete("/eliminar-libro",async(req,res)=>{
+    try{
+        const libro=await Libro.destroy({
+            where:{
+                ISBN:req.body.ISBN
+            }
+        })
+
+        res.status(200).json({success:true,message:"Libro eliminado",libro:libro})
+
+    }catch(e){
+        res.status(500).json({success:false,message:"Error interno del servidor"})
+    }
+})
+
 
 app.post("/resevar-libro",async(req,res)=>{
     try{
